@@ -6,7 +6,9 @@ const app = express();
 app.use(express.json());
 
 let whatsappClient = null;
+let whatsappReady = false;
 const mensagensEnviadas = new Set();
+const pendingMessages = [];
 const tempoLimiteLog = 5 * 60 * 1000;
 
 function formatarData() {
@@ -54,6 +56,14 @@ function inicializarWhatsApp() {
   whatsappClient.on('ready', () => {
     console.log('Cliente WhatsApp está pronto!');
     console.log('Informações do cliente:', whatsappClient.info);
+    whatsappReady = true;
+    if (pendingMessages.length > 0) {
+      console.log(`Processando ${pendingMessages.length} mensagens pendentes...`);
+      pendingMessages.forEach(msg => {
+        enviarMensagemWhatsApp(msg.telefone, msg.mensagem).catch(console.error);
+      });
+      pendingMessages.length = 0;
+    }
   });
 
   whatsappClient.on('message_ack', (msg, ack) => {
@@ -78,10 +88,12 @@ function inicializarWhatsApp() {
 
   whatsappClient.on('auth_failure', (msg) => {
     console.error('Falha na autenticação:', msg);
+    whatsappReady = false;
   });
 
   whatsappClient.on('disconnected', (reason) => {
     console.log('Cliente desconectado:', reason);
+    whatsappReady = false;
   });
 
   whatsappClient.initialize();
@@ -118,7 +130,7 @@ async function validarNumeroWhatsApp(telefone) {
 
 async function enviarMensagemWhatsApp(telefone, mensagem) {
   try {
-    if (!whatsappClient || !whatsappClient.info) {
+    if (!whatsappReady) {
       throw new Error('Cliente WhatsApp não está pronto');
     }
 
@@ -168,6 +180,17 @@ app.post('/mensagem', async (req, res) => {
     console.log(`Recebida mensagem - Nome: ${nome}, Telefone: ${telefone}, Protocolo: ${protocolNumber}, Tipo: ${typeFormatado}, Emergencial: ${isEmergencial || false}`);
 
     const mensagem = gerarMensagemResposta(nome, protocolNumber, typeFormatado, isEmergencial === true);
+
+    if (!whatsappReady) {
+      console.log('Cliente ainda não pronto → enfileirando mensagem');
+      pendingMessages.push({ telefone, mensagem });
+      return res.json({
+        sucesso: true,
+        aviso: 'Mensagem enfileirada (WhatsApp ainda inicializando)',
+        mensagem: 'Será enviada em alguns segundos'
+      });
+    }
+
     await enviarMensagemWhatsApp(telefone, mensagem);
 
     res.json({
@@ -185,7 +208,16 @@ app.post('/mensagem', async (req, res) => {
 
 app.get('/status', (req, res) => {
   const status = whatsappClient && whatsappClient.info ? 'conectado' : 'desconectado';
-  res.json({ status });
+  res.json({ status, pronto: whatsappReady });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    whatsappReady,
+    pendingMessages: pendingMessages.length,
+    uptime: process.uptime()
+  });
 });
 
 const PORT = process.env.PORT || 3000;
