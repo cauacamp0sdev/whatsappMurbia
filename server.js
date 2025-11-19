@@ -139,9 +139,9 @@ async function enviarMensagemWhatsApp(telefone, mensagem) {
 app.post('/mensagem', async (req, res) => {
   try {
     const { type, protocolNumber, isEmergencial } = req.body;
-    const nome = 'PEPEU';
-    // const telefone = '7991624887'; // Nelson 
-    const telefone = '7998054756'; // Número de teste
+    const nome = 'Nelson';
+    const telefone = '7991624887'; // Nelson 
+    // const telefone = '7998054756'; // Número de teste
     if (!type || !protocolNumber) {
       return res.status(400).json({
         erro: true,
