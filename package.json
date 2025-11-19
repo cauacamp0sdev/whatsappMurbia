@@ -1,0 +1,24 @@
+{
+  "name": "whatsapp-murbia",
+  "version": "1.0.0",
+  "description": "Sistema de processamento de mensagens WhatsApp via wwebjs",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "wwebjs",
+    "bot"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "whatsapp-web.js": "^1.34.2",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
+
