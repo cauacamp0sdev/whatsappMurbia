@@ -1,6 +1,6 @@
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 
 const app = express();
 app.use(express.json());
@@ -39,9 +39,16 @@ function inicializarWhatsApp() {
     })
   });
 
-  whatsappClient.on('qr', (qr) => {
+  whatsappClient.on('qr', async (qr) => {
     console.log('Escaneie o QR Code abaixo com seu WhatsApp:');
-    qrcode.generate(qr, { small: true });
+    try {
+      const qrCodeBase64 = await QRCode.toDataURL(qr);
+      console.log('\nQR Code em Base64:');
+      console.log(qrCodeBase64);
+      console.log('\n');
+    } catch (error) {
+      console.error('Erro ao gerar QR Code em base64:', error);
+    }
   });
 
   whatsappClient.on('ready', () => {
